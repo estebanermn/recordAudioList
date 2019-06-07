@@ -1,6 +1,7 @@
 package pe.edu.cibertec.recordaudiolist;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
@@ -14,6 +15,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.transition.TransitionManager;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Chronometer;
 import android.widget.ImageView;
@@ -27,9 +31,9 @@ import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-    static final int REQUEST_RECORD_AUDIO = 1;
+    static final int REQUEST_RECORD_AUDIO = 123;
     boolean permissionGranted = false;
-    private String fileName = null;
+
 
     MediaRecorder recorder = null;
     MediaPlayer player = null;
@@ -40,6 +44,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     SeekBar seekBar;
     LinearLayout linearLayoutRecorder, linearLayoutPlay;
 
+
+    private String fileName = null;
     private Handler mHandler = new Handler();
     private int lastProgress = 0;
     private boolean isPlaying = false;
@@ -120,15 +126,35 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if (!isPlaying && fileName != null) {
                 isPlaying = true;
                 startPlaying();
-            }else{
+            } else {
                 isPlaying = false;
                 stopPlaying();
             }
         }
     }
 
-    private void initViews() {
+    private void initViews() {   /** setting up the toolbar  **/
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar.setTitle("Voice Recorder");
+        toolbar.setTitleTextColor(getResources().getColor(android.R.color.black));
+        setSupportActionBar(toolbar);
+
+        linearLayoutRecorder = (LinearLayout) findViewById(R.id.linearLayoutRecorder);
+        chronometer = (Chronometer) findViewById(R.id.chronometerTimer);
+        chronometer.setBase(SystemClock.elapsedRealtime());
+        ivRecorder = findViewById(R.id.ivRecorder);
+        ivStop = (ImageView) findViewById(R.id.ivStop);
+        ivPlay = (ImageView) findViewById(R.id.ivPlay);
+        linearLayoutPlay = (LinearLayout) findViewById(R.id.linearLayoutPlay);
+        seekBar = (SeekBar) findViewById(R.id.seekBar);
+
+
+        ivRecorder.setOnClickListener(this);
+        ivStop.setOnClickListener(this);
+        ivPlay.setOnClickListener(this);
+
     }
+
 
     private void prepareforRecording() {
         TransitionManager.beginDelayedTransition(linearLayoutRecorder);
@@ -137,25 +163,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         ivPlay.setVisibility(View.GONE);
     }
 
-    private void startRecording() {
-        recorder = new MediaRecorder();
-        recorder.setAudioEncoder(MediaRecorder.AudioSource.MIC);
-        recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
 
+    private void startRecording() {
+        //we use the MediaRecorder class to record
+        recorder = new MediaRecorder();
+        recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+        /**In the lines below, we create a directory named VoiceRecorderSimplifiedCoding/Audios in the phone storage
+         * and the audios are being stored in the Audios folder **/
         File root = android.os.Environment.getExternalStorageDirectory();
         File file = new File(root.getAbsolutePath() + "/VoiceRecorderSimplifiedCoding/Audios");
         if (!file.exists()) {
             file.mkdirs();
         }
 
-
-//        fileName = getExternalCacheDir().getAbsolutePath();
-//        fileName = fileName + "/audiorecorder.3gp";
-
-        fileName = root.getAbsolutePath() + "/VoiceRecorderSimplifiedCoding/Audios/" +
-                String.valueOf(System.currentTimeMillis() + ".mp3");
-
-        Log.d("filename", fileName);
+        fileName =  root.getAbsolutePath() + "/VoiceRecorderSimplifiedCoding/Audios/" + String.valueOf(System.currentTimeMillis() + ".mp3");
+        Log.d("filename",fileName);
         recorder.setOutputFile(fileName);
         recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
 
@@ -164,15 +187,48 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             recorder.start();
         } catch (IOException e) {
             e.printStackTrace();
-            Log.e(LOG_TAG, e.toString());
         }
-
         lastProgress = 0;
         seekBar.setProgress(0);
         stopPlaying();
+        //starting the chronometer
         chronometer.setBase(SystemClock.elapsedRealtime());
         chronometer.start();
     }
+
+//    private void startRecording() {
+//        recorder = new MediaRecorder();
+//        recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+//        recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+//
+//        File root = android.os.Environment.getExternalStorageDirectory();
+//        File file = new File(root.getAbsolutePath() + "/VoiceRecorderSimplifiedCoding/Audios");
+//        if (!file.exists()) {
+//            file.mkdirs();
+//        }
+//
+//
+//        fileName = root.getAbsolutePath() + "/VoiceRecorderSimplifiedCoding/Audios/" +
+//                String.valueOf(System.currentTimeMillis() + ".mp3");
+//
+//        Log.d("filename", fileName);
+//        recorder.setOutputFile(fileName);
+//        recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+//
+//        try {
+//            recorder.prepare();
+//            recorder.start();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//            Log.e(LOG_TAG, e.toString());
+//        }
+//
+//        lastProgress = 0;
+//        seekBar.setProgress(0);
+//        stopPlaying();
+//        chronometer.setBase(SystemClock.elapsedRealtime());
+//        chronometer.start();
+//    }
 
     private void stopPlaying() {
 
@@ -272,6 +328,30 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             lastProgress = mCurrentPosition;
         }
         mHandler.postDelayed(runnable, 100);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.list_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        switch (item.getItemId()) {
+            case R.id.item_list:
+                Intent intent = new Intent(this, RecordingListActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+
+        }
+
     }
 }
 
